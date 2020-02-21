@@ -85,7 +85,17 @@ You may want to either a) run many blasts at once, or b) break up one large blas
 ### 1. Dividing fasta file
 If you are breaking up a fasta file, then use this python script to divide the file, otherwise skip to step 2
 
-Clone this repository in your directory to get the FastaManager.py script
+Clone this repository in your directory to get the FastaManager.py script. You will have to set up a key on chtc before you will be able to clone.
+
+    git clone https://github.com/HiroshiLab/Running-Blasts-chtc.git
+    
+Divide fasta file. flags: -f <function> -fasta <fasta file> -by <number how many times to divide
+
+    python FastaManager.py -f divide -fasta fasta.mod.fa -by 5
+    
+this divides the file by 5 times
+
+### 2. Create a new .sub file
 
     
 
