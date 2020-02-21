@@ -107,7 +107,7 @@ this divides the file by 5 times
     
     mv fasta.mod.fa* bl_db/
 
-### 3. Create a new .sub file
+### 4. Create a new .sub file
 
     # blast2.sub
     #
@@ -131,7 +131,7 @@ this divides the file by 5 times
     # Tell condor you want to queue up files in a list
     queue bl from blast_list.txt
     
-### 4. Submit the .sub file to HTCondor
+### 5. Submit the .sub file to HTCondor
 
     condor_submit blast.sub
     
