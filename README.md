@@ -95,7 +95,75 @@ Divide fasta file. flags: -f <function> -fasta <fasta file> -by <number how many
     
 this divides the file by 5 times
 
-### 2. Create a new .sub file
+### 2. put divided fasta files into a list:
+
+    ls fasta.mod.fa_* > blast_list.txt
+    
+### 3. Make database for each divided fasta file (this only takes a few seconds), then put all the databases and divided fastas into a folder
+
+    ncbi-blast-2.9.0+/bin/makeblastdb -in fasta.mod.fa_1 -dbtype nucl
+    
+    mkdir bl_db
+    
+    mv fasta.mod.fa* bl_db/
+
+### 3. Create a new .sub file
+
+    # blast2.sub
+    #
+    universe = vanilla
+    log = blast1_$(Cluster).log
+    error = blast1_$(Cluster)_$(Process).err
+    #
+    executable = ncbi-blast-2.9.0+/bin/blastn 
+    #  $(bl) is the filename that changes in the loop from the blast_list.txt
+    # thus each -db and -out will change according to the blast_list.txt
+    arguments = -db $(bl) -query Joinvillea_ascendens_subsp._gabra.faa -out $(bl)vJoinvi_results.txt
+    should_transfer_files = YES
+    when_to_transfer_output = ON_EXIT
+    # this tells HTCondor to transfer everything from bl_db/ folder and the join.faa file
+    transfer_input_files = bl_db/, Joinvillea_ascendens_subsp._gabra.faa
+    #
+    request_cpus = 1
+    request_memory = 5GB
+    request_disk = 500MB
+    ##
+    # Tell condor you want to queue up files in a list
+    queue bl from blast_list.txt
+    
+### 4. Submit the .sub file to HTCondor
+
+    condor_submit blast.sub
+    
+## Changing the submit file for multiple blasts so results go in their own folder
+If you are runnning a very large number of blasts or if you want results to be put in their own folder
+
+### 1. Make new submit file:
+
+    nano blast4.sub
+    
+    # blast3.sub
+    ##
+    universe = vanilla
+    log = blast1_$(Cluster).log
+    error = blast1_$(Cluster)_$(Process).err
+    executable = ncbi-blast-2.9.0+/bin/blastn
+    # output will go in folder bl_db/
+    arguments = -db $(bl) -query Joinvillea_ascendens_subsp._gabra.faa -out bl_db/$(bl)_Joinvi_results.txt
+    should_transfer_files = YES
+    when_to_transfer_output = ON_EXIT
+    # Here you are telling condor to transfer just the given blast file and database for this specific job, not all
+    transfer_input_files = bl_db/$(bl), bl_db/$(bl).nhr, bl_db/$(bl).nin, bl_db/$(bl).nsq, Joinvillea_ascendens_subsp._gabra.faa
+    request_cpus = 1
+    request_memory = 5GB
+    request_disk = 500MB
+    ##
+    # Tell condor you want to queue up files in a list
+    queue bl from blast_list.txt
+
+### 2. Submit the .sub file to HTCondor
+
+    condor_submit blast.sub
 
     
 
