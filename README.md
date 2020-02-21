@@ -79,6 +79,16 @@ Configure sub file. Use this configuration as an example:
 
     condor_submit blast.sub
     
+### 5. Check if your job is running
+
+Check status
+
+    condor_q
+    
+If the job is held or idle you can see why here:
+
+    condor_q -better-a
+    
 ## Running multiple blasts on chtc
 You may want to either a) run many blasts at once, or b) break up one large blast into several to run in parallel
 
