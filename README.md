@@ -3,30 +3,43 @@ Information on how to run BLASTs on the CHTC at UW-Madison
 
 ## Running one Blast
 ### 1. Get your files
-Get BLAST from NCBI:
+Get BLAST from NCBI using wget- use latest linux version for chtc (check BLAST website for latest version):
+**Note: BLAST program is about ~243 MB, so you need to use large file storage SQUID. See CHTC website for more info https://chtc.cs.wisc.edu/file-avail-squid.shtml**
 
-    wget http://proxy.chtc.wisc.edu/SQUID/osgschool19/ncbi-blast-2.9.0+-x64-linux.tar.gz
+change to squid directory after logging into chtc:
+
+    cd /squid/username/
+ 
+get blast program:
+
+    wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.10.1+-x64-linux.tar.gz
     
-Transfer your files using wget if downloading or the scp command or filezilla if transferring from your computer
+Transfer your fasta files using wget if downloading from a website or the scp command or filezilla if transferring from your computer. Again if larger than 100 MB, use squid, otherwise you can download to your home directory.
+
+Example using scp:
 
     scp your_local_dir/example.fa username@submit2.chtc.wisc.edu:example.fa
     
-### 2. Unzip and format
-Unzip the tarred BLAST program
+### 2. make executable file
+Open file in nano
 
-    tar -xzf ncbi-blast-2.9.0+-x64-linux.tar.gz
+    nano blast.sh
     
-Format your Blast database (this is used as the subject against your query sequence). -dbtype can be prot or nucl
+Configure file:
 
-    ncbi-blast-2.9.0+/bin/makeblastdb -in egu.fasta -dbtype prot 
-
-This makes several database files which then need to be moved into 1 folder so they can be called together in the submission file.
-
-    egu.fasta.00.phr  egu.fasta.00.pin  egu.fasta.00.psq  egu.fasta.01.phr  egu.fasta.01.pin  egu.fasta.01.psq  egu.fasta.pal
+    #!/bin/bash
     
-    mkdir egu.fasta1
+    #Unzip the tarred BLAST program
+    tar -xzf ncbi-blast-2.10.1+-x64-linux.tar.gz
     
-    mv egu.fasta* egu.fasta1/
+    #Format your Blast database (this is used as the subject against your query sequence). -dbtype can be prot or nucl
+    ncbi-blast-2.10.1+/bin/makeblastdb -in sub.fasta -dbtype prot 
+
+    #This makes several database files which then need to be moved into 1 folder so they can be called together in the submission file.
+    #sub.fasta.00.phr  sub.fasta.00.pin  sub.fasta.00.psq  sub.fasta.01.phr  sub.fasta.01.pin  sub.fasta.01.psq  sub.fasta.pal
+    
+    # Run blast: blastp: blast on protein sequences; blastn: blast on nucleotide sequences; -num_threads: number of computer cores- this should match what you put in sub file; -db: database fasta file; -query: query fasta; -out: output name; -outfmt: 6 is tab-delimited format, but there are other formats that you can check
+    ncbi-blast-2.10.1+/bin/blastp -num_threads X -db sub.fasta -query query.fasta -out subvsquery_results.txt -outfmt 6
     
 ### 3. Configure the submission file
 Open file in nano
@@ -51,9 +64,9 @@ Configure sub file. Use this configuration as an example:
     # Specify your executable (single binary or a script that runs several
     #  commands), arguments, and a files for HTCondor to store standard
     #  output (or "screen output").
-    #
-    executable = ncbi-blast-2.9.0+/bin/blastp
-    arguments = -db egu.fasta -query Streptochaeta_maker_max_proteins_V1.fasta -out JoinvsStreptoch_results.txt
+    # executable should be whatever you named the executable file
+    executable = blast.sh
+    # arguments = 
     #
     # Specify that HTCondor should transfer files to and from the
     #  computer where each job runs. The last of these lines *would* be
@@ -61,16 +74,17 @@ Configure sub file. Use this configuration as an example:
     #
     should_transfer_files = YES
     when_to_transfer_output = ON_EXIT
-    transfer_input_files = egu.fasta1/,Streptochaeta_maker_max_proteins_V1.fasta
+    # transfer your fasta files and the blast program via squid
+    transfer_input_files = sub.fasta,query.fasta,http://proxy.chtc.wisc.edu/SQUID/bmoore22/ncbi-blast-2.10.1+-x64-linux.tar.gz
     # 
     # to transfer only the contents of folder: foldername/ 
     # to transfer contents of folder and folder: foldername
     #
     # Tell HTCondor what amount of compute resources
     #  each job will need on the computer where it runs.
-    request_cpus = 1
-    request_memory = 10GB
-    request_disk = 500MB
+    request_cpus = X # this should match the -num_threads argument in the executable file
+    request_memory = 5GB 
+    request_disk = 3GB
     #
     # Tell HTCondor to run 1 instances of our job:
     queue 1
@@ -109,34 +123,43 @@ this divides the file by 5 times
 
     ls fasta.mod.fa_* > blast_list.txt
     
-### 3. Make database for each divided fasta file (this only takes a few seconds), then put all the databases and divided fastas into a folder
+### 3. Make executable file:
 
-    ncbi-blast-2.9.0+/bin/makeblastdb -in fasta.mod.fa_1 -dbtype nucl
+Open file in nano
+
+    nano blast1.sh
     
-    mkdir bl_db
+Configure file:
+
+    #!/bin/bash
     
-    mv fasta.mod.fa* bl_db/
+    # Unzip the tarred BLAST program
+    tar -xzf ncbi-blast-2.10.1+-x64-linux.tar.gz
+    # Make database for each divided fasta file (this only takes a few seconds)-remmeber to choose prot or nucl
+    for i in fasta.mod.fa_*; do echo $i; ncbi-blast-2.9.0+/bin/makeblastdb -in $i -dbtype nucl; done
+    # blast each
+    ncbi-blast-2.9.0+/bin/blastp 
 
 ### 4. Create a new .sub file
 
-    # blast2.sub
+    # blast1.sub
     #
     universe = vanilla
     log = blast1_$(Cluster).log
     error = blast1_$(Cluster)_$(Process).err
     #
-    executable = ncbi-blast-2.9.0+/bin/blastn 
+    executable =  blast1.sh
     #  $(bl) is the filename that changes in the loop from the blast_list.txt
     # thus each -db and -out will change according to the blast_list.txt
-    arguments = -db $(bl) -query Joinvillea_ascendens_subsp._gabra.faa -out $(bl)vJoinvi_results.txt
+    arguments = -db $(bl) -query query.fa -out $(bl)vs.Q_results.txt
     should_transfer_files = YES
     when_to_transfer_output = ON_EXIT
     # this tells HTCondor to transfer everything from bl_db/ folder and the join.faa file
-    transfer_input_files = bl_db/, Joinvillea_ascendens_subsp._gabra.faa
+    transfer_input_files = query.fa
     #
     request_cpus = 1
     request_memory = 5GB
-    request_disk = 500MB
+    request_disk = 3GB
     ##
     # Tell condor you want to queue up files in a list
     queue bl from blast_list.txt
@@ -174,7 +197,9 @@ If you are runnning a very large number of blasts or if you want results to be p
 ### 2. Submit the .sub file to HTCondor
 
     condor_submit blast.sub
-
     
+## Get recipricol best match from BLAST output
+Note: the input is your blast output from format 6.
 
+    python get_recipricol.py blast.out
 
