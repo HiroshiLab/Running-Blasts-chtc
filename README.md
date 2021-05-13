@@ -202,4 +202,11 @@ If you are runnning a very large number of blasts or if you want results to be p
 Note: the input is your blast output from format 6.
 
     python get_recipricol.py blast.out
+    
+    output: *.recipricol
+    
+Combine recipricol best match file with other file (such as expression file)
+-type: how to combine 2 dataframes <o= union, i= inner, df1= dataframe1>
+
+    python combine_dataframes_pd.py -df1 <*.recipricol file> -df2 <expression_file> -type o
 
