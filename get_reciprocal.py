@@ -26,6 +26,7 @@ def get_recipricol(blast,idenT,expcT):
     #now check for reciprocal best match and output
     output = open(blast+".recipricol","w")
     print(len(BMQ.keys()),len(BMS.keys()))
+    output.write("query\tsubject\n")
     for q in BMQ.keys():
         s = BMQ[q][0]
         if s in BMS.keys():
